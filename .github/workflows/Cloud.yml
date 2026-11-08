@@ -1,0 +1,55 @@
+name: Start Windows Cloud PC
+
+on:
+  workflow_dispatch:
+    inputs:
+      tailscale_authkey:
+        description: 'Nhập Tailscale Auth Key (bắt đầu bằng tskey-auth-...)'
+        required: true
+        type: string
+      pc_password:
+        description: 'Đặt mật khẩu đăng nhập máy ảo Windows'
+        required: true
+        default: 'CloudPC@2026!'
+        type: string
+
+jobs:
+  build-cloud-pc:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Cài đặt và kết nối mạng ảo Tailscale
+        shell: powershell
+        run: |
+          Write-Host "Dang cai dat Tailscale..."
+          choco install tailscale -y --no-progress
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+          Start-Sleep -Seconds 5
+          tailscale up --authkey=${{ github.event.inputs.tailscale_authkey }} --hostname=github-cloud-pc --unattended
+
+      - name: Cấu hình tài khoản và bật Remote Desktop (RDP)
+        shell: powershell
+        run: |
+          net user runneradmin "${{ github.event.inputs.pc_password }}"
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -value 1
+
+      - name: Tải sẵn Google Chrome
+        shell: powershell
+        run: |
+          choco install googlechrome -y --no-progress
+
+      - name: Giữ máy ảo hoạt động và hiển thị IP kết nối
+        shell: powershell
+        run: |
+          $ip = tailscale ip -4
+          Write-Host "==========================================" -ForegroundColor Green
+          Write-Host "CLOUD PC DA SAN SANG!" -ForegroundColor Green
+          Write-Host "IP Ket Noi (Tailscale): $ip" -ForegroundColor Yellow
+          Write-Host "Tai khoan: runneradmin" -ForegroundColor Yellow
+          Write-Host "Mat khau: ${{ github.event.inputs.pc_password }}" -ForegroundColor Yellow
+          Write-Host "==========================================" -ForegroundColor Green
+          Start-Sleep -Seconds 21000
+          
