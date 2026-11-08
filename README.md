@@ -1,0 +1,55 @@
+name: Super Cloud PC 6H
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cloud-pc:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: 1. Cấu hình nguồn và cài đặt RustDesk + Chrome
+        shell: powershell
+        run: |
+          powercfg /change monitor-timeout-ac 0
+          powercfg /change standby-timeout-ac 0
+          choco install rustdesk.install googlechrome -y --no-progress
+          Start-Sleep -Seconds 5
+
+      - name: 2. Khởi chạy RustDesk và lấy ID kết nối
+        shell: powershell
+        run: |
+          $rustdesk = "C:\Program Files\RustDesk\rustdesk.exe"
+          Start-Service -Name "RustDesk" -ErrorAction SilentlyContinue
+          Start-Process -FilePath $rustdesk
+          Start-Sleep -Seconds 15
+          & $rustdesk --password "CloudPC@2026!"
+          Start-Sleep -Seconds 5
+
+          $id = ""
+          for ($i = 1; $i -le 12; $i++) {
+            $id = (& $rustdesk --get-id | Out-String).Trim()
+            if ($id -match '^\d+$') { break }
+            Start-Sleep -Seconds 5
+          }
+
+          Write-Host "==================================================" -ForegroundColor Green
+          Write-Host ">>> ID KET NOI RUSTDESK : $id" -ForegroundColor Yellow
+          Write-Host ">>> MAT KHAU MAC DINH   : CloudPC@2026!" -ForegroundColor Yellow
+          Write-Host "==================================================" -ForegroundColor Green
+
+      - name: 3. Giữ phiên hoạt động liên tục 6 tiếng
+        shell: powershell
+        run: |
+          $rustdesk = "C:\Program Files\RustDesk\rustdesk.exe"
+          for ($m = 1; $m -le 350; $m++) {
+            if (-not (Get-Process -Name "rustdesk" -ErrorAction SilentlyContinue)) {
+              Start-Process -FilePath $rustdesk
+            }
+            $cpu = (Get-Counter '\Processor(_Total)\% Processor Time').CounterSamples.CookedValue
+            Write-Host "Phut $m/350 - CPU Load: $([math]::Round($cpu, 1))%"
+            Start-Sleep -Seconds 60
+          }
+
+          
