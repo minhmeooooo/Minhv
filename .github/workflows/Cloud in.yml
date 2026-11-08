@@ -1,0 +1,40 @@
+name: Super Cloud PC
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cloud-pc:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: 1. Tối ưu hệ thống và cài đặt RustDesk + Chrome
+        shell: powershell
+        run: |
+          Write-Host "Dang cai dat RustDesk va Google Chrome..." -ForegroundColor Cyan
+          choco install rustdesk.install googlechrome -y --no-progress
+          Start-Sleep -Seconds 5
+
+      - name: 2. Kích hoạt dịch vụ và thiết lập mật khẩu siêu tốc
+        shell: powershell
+        run: |
+          $rustdesk = "C:\Program Files\RustDesk\rustdesk.exe"
+          Start-Service -Name "RustDesk" -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 3
+          & $rustdesk --password "CloudPC@2026!"
+          Start-Sleep -Seconds 3
+          $id = & $rustdesk --get-id
+          Write-Host "==================================================" -ForegroundColor Green
+          Write-Host "       MAY AO CLOUD PC DA SAN SANG KET NOI        " -ForegroundColor Green
+          Write-Host "==================================================" -ForegroundColor Green
+          Write-Host ">>> ID KET NOI RUSTDESK : $id" -ForegroundColor Yellow
+          Write-Host ">>> MAT KHAU MAC DINH   : CloudPC@2026!" -ForegroundColor Yellow
+          Write-Host "==================================================" -ForegroundColor Green
+
+      - name: 3. Duy trì máy ảo hoạt động liên tục 6 tiếng
+        shell: powershell
+        run: |
+          Write-Host "May ao dang chay on dinh. Ban co the ket noi ngay bay gio!" -ForegroundColor Cyan
+          Start-Sleep -Seconds 21000
+          
