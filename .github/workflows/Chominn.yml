@@ -1,0 +1,66 @@
+name: Super Cloud PC
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cloud-pc:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: 1. Tối ưu màn hình và cài đặt RustDesk + Chrome
+        shell: powershell
+        run: |
+          Write-Host "Dang cai dat RustDesk va Google Chrome..." -ForegroundColor Cyan
+          choco install rustdesk.install googlechrome -y --no-progress
+          powercfg /change monitor-timeout-ac 0
+          powercfg /change standby-timeout-ac 0
+          Start-Sleep -Seconds 5
+
+      - name: 2. Khởi động dịch vụ và ép lấy dãy số ID RustDesk
+        shell: powershell
+        run: |
+          $rustdesk = "C:\Program Files\RustDesk\rustdesk.exe"
+          Start-Service -Name "RustDesk" -ErrorAction SilentlyContinue
+          Start-Process -FilePath $rustdesk
+          Start-Sleep -Seconds 15
+          & $rustdesk --password "CloudPC@2026!"
+          Start-Sleep -Seconds 5
+
+          $id = ""
+          for ($i = 1; $i -le 12; $i++) {
+            $id = (& $rustdesk --get-id | Out-String).Trim()
+            if ($id -match '^\d+$') { break }
+            Start-Sleep -Seconds 5
+          }
+
+          if (-not ($id -match '^\d+$')) {
+            $configPaths = @(
+              "$env:APPDATA\RustDesk\config\RustDesk2.toml",
+              "C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config\RustDesk2.toml"
+            )
+            foreach ($path in $configPaths) {
+              if (Test-Path $path) {
+                $content = Get-Content $path -Raw
+                if ($content -match "id\s*=\s*'(\d+)'") {
+                  $id = $matches[1]
+                  break
+                }
+              }
+            }
+          }
+
+          Write-Host "==================================================" -ForegroundColor Green
+          Write-Host "       MAY AO CLOUD PC DA SAN SANG KET NOI        " -ForegroundColor Green
+          Write-Host "==================================================" -ForegroundColor Green
+          Write-Host ">>> ID KET NOI RUSTDESK : $id" -ForegroundColor Yellow
+          Write-Host ">>> MAT KHAU MAC DINH   : CloudPC@2026!" -ForegroundColor Yellow
+          Write-Host "==================================================" -ForegroundColor Green
+
+      - name: 3. Duy trì máy ảo hoạt động liên tục 6 tiếng
+        shell: powershell
+        run: |
+          Write-Host "May ao dang chay on dinh. Ban co the ket noi ngay bay gio!" -ForegroundColor Cyan
+          Start-Sleep -Seconds 21000
+          
